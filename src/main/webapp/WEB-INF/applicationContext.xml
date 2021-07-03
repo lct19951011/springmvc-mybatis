@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="chao.tan.liu.*"/>
+    <!--可以把信息传递到Model-->
+    <bean id="exceptionHandler" class="chao.tan.liu.exception.MyExceptionHandler"/>
+    <!--简单的异常配置-->
+    <!--<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">-->
+        <!--&lt;!&ndash; 定义默认的异常处理页面，当该异常类型的注册时使用 &ndash;&gt;-->
+        <!--<property name="defaultErrorView" value="error"></property>-->
+        <!--&lt;!&ndash; 定义异常处理页面用来获取异常信息的变量名，默认名为exception &ndash;&gt;-->
+        <!--<property name="exceptionAttribute" value="ex"></property>-->
+        <!--&lt;!&ndash; 定义需要特殊处理的异常，用类名或完全路径名作为key，异常也页名作为值 &ndash;&gt;-->
+        <!--<property name="exceptionMappings">-->
+            <!--<props>-->
+                <!--<prop key="chao.tan.liu.exception.HandException">error-hand</prop>-->
+                <!--&lt;!&ndash; 这里还可以继续扩展对不同异常类型的处理 &ndash;&gt;-->
+            <!--</props>-->
+        <!--</property>-->
+    <!--</bean>-->
+
+
+    <!-- 配置整合Mybatis过程 -->
+    <!-- 配置数据库相关参数 properties的属性：${url} -->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+
+    <bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <!-- dataSourse连接池相关属性 -->
+                <value>classpath:jdbc.properties</value>
+            </list>
+        </property>
+    </bean>
+    <!--2.配置连接池属性 -->
+    <!-- 数据源配置, 使用 Druid 数据库连接池 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+          init-method="init" destroy-method="close">
+        <!-- 数据源驱动类可不写，Druid默认会自动根据URL识别DriverClass -->
+        <property name="driverClassName" value="${jdbc.driver}"/>
+
+        <!-- 基本属性 url、user、password -->
+        <property name="url" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+
+        <!-- 配置初始化大小、最小、最大 -->
+        <property name="initialSize" value="${jdbc.pool.init}"/>
+        <property name="minIdle" value="${jdbc.pool.minIdle}"/>
+        <property name="maxActive" value="${jdbc.pool.maxActive}"/>
+
+        <!-- 配置获取连接等待超时的时间 -->
+        <property name="maxWait" value="60000"/>
+
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="300000"/>
+
+        <property name="validationQuery" value="${jdbc.testSql}"/>
+        <property name="testWhileIdle" value="true"/>
+        <property name="testOnBorrow" value="false"/>
+        <property name="testOnReturn" value="false"/>
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小（Oracle使用） -->
+        <!-- <property name="poolPreparedStatements"
+                   value="true"/>
+         <property name="maxPoolPreparedStatementPerConnectionSize"
+                   value="20"/>-->
+        <!-- 配置监控统计拦截的filters -->
+        <property name="filters" value="stat"/>
+    </bean>
+
+    <!--3.配置SqlSessionFactory对象 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--注入数据库连接池 -->
+        <property name="dataSource" ref="dataSource"/>
+        <!--配置mybatis全局配置文件:mybatis-config.xml -->
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+        <!--扫描entity包,使用别名,多个用;隔开 -->
+        <property name="typeAliasesPackage" value="entity"/>
+        <!--扫描sql配置文件:mapper需要的xml文件 -->
+        <!--<property name="mapperLocations" value="classpath:mapper/*.xml"/>-->
+        <property name="plugins">
+            <array>
+                <bean class="com.github.pagehelper.PageHelper">
+                    <property name="properties">
+                        <value>
+                            dialect=mysql
+                        </value>
+                    </property>
+                </bean>
+            </array>
+        </property>
+    </bean>
+    <bean class="tk.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="chao.tan.liu.mapper"/>
+        <property name="properties">
+            <value>
+                mappers=tk.mybatis.mapper.common.Mapper
+            </value>
+
+        </property>
+        <!-- 配置需要扫描的DAO的包 -->
+           <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+</beans>
